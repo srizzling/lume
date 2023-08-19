@@ -1,10 +1,17 @@
 function lume
-    set _flag_hide_additional_fields 0
-    set _flag_flat_fields 0
-    set _flag_filter_string ""
+    # Initialize flags with default values
+    set _flag_hide_additional 0
+    set _flag_jq_filter ""
+    set _flag_dot_notation 0
 
     # Define flags and arguments with argparse
-    argparse "H/hide_additional_fields" "f/flat_fields" "d/filter_string=" -- $argv
+    argparse "h/help" "H/hide_additional" "f/jq_filter=" "D/dot_notation" -- $argv || lume_help
+
+    # If the help flag is set, display help and exit
+    if set -q _flag_help
+        lume_help
+        return
+    end
 
     # Determine maximum line count from environment variable or default to 10
     if set -q LUME_LINE_COUNT
@@ -12,6 +19,7 @@ function lume
     else
         set max_line_count 10
     end
+
     set line_count 0
 
     # Process each incoming log line
@@ -25,17 +33,17 @@ function lume
         set additional_fields ""
 
         # Prepare the additional fields if they are not to be hidden
-        if not $_flag_hide_additional_fields
-            set additional_fields (echo $line | jq 'del(.lvl, .level, .msg, .message, .timestamp, .time)')
-            # Flatten the additional fields if the flat_fields flag is set
-            if $_flag_flat_fields
+        if test $_flag_hide_additional -eq 0
+            if test -n "$_flag_jq_filter"
+                set additional_fields (echo $line | jq "$_flag_jq_filter")
+            else
+                set additional_fields (echo $line | jq 'del(.lvl, .level, .msg, .message, .timestamp, .time)')
+            end
+
+            # Flatten the additional fields if the dot_notation flag is set
+            if test $_flag_dot_notation -eq 1
                 set additional_fields (echo $additional_fields | jq -r 'recurse | to_entries[] | "\(.key): \(.value)"')
             end
-        end
-
-        # Apply filtering if a filter string is provided
-        if test -n "$_flag_filter_string"
-            set additional_fields (echo $additional_fields | jq "$_flag_filter_string")
         end
 
         # Begin printing the processed log line
@@ -79,7 +87,8 @@ function lume_help
     echo "Usage: lume [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -H, --hide_additional_fields  Hide the additional fields in the log output"
-    echo "  -f, --flat_fields             Display additional fields in a flattened manner"
-    echo "  -d, --filter_string=STRING    Filter which fields to display using a jq filter string"
+    echo "  -h, --help                Show this help message and exit."
+    echo "  -H, --hide-additional     Hide additional fields in the log."
+    echo "  -f, --jq-filter=FILTER    Provide a jq filter to extract specific fields. Example: -f '.details'."
+    echo "  -D, --dot-notation        Transform nested fields to dot notation."
 end
