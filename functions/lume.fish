@@ -26,8 +26,6 @@ function lume
     if set -q _flag_jq_filter; set jq_filter $_flag_jq_filter; end
     if set -q _flag_dot_notation; set dot_notation true; end
 
-    # Remaining logic starts here
-
     set -l line_count 0
     set max_line_count $LUME_LINE_COUNT
     if not set -q max_line_count
