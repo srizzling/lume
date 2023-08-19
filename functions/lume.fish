@@ -1,95 +1,68 @@
 function lume
-    # Initialize flags with default values
-    set _flag_hide_additional 0
-    set _flag_jq_filter ""
-    set _flag_dot_notation 0
+    # Arguments setup
+    set -l _flag_hide_additional 0
+    set -l _flag_jq_filter ""
+    set -l _flag_dot_notation 0
 
-    # Define flags and arguments with argparse
-    argparse "h/help" "H/hide_additional" "f/jq_filter=" "D/dot_notation" -- $argv || lume_help
+    argparse "h/help H/hide-additional f/jq-filter= D/dot-notation" -- $argv
 
-    # If the help flag is set, display help and exit
+    # Check if help flag is provided
     if set -q _flag_help
-        lume_help
-        return
+        echo "Usage: lume [OPTIONS]"
+        echo
+        echo "Options:"
+        echo "  -h, --help: Show the help message and exit."
+        echo "  -H, --hide-additional: Hide additional fields in the log."
+        echo "  -f, --jq-filter=FILTER: Provide a jq filter to extract specific fields. Example: -f '.details'."
+        echo "  -D, --dot-notation: Transform nested fields to dot notation."
+        return 0
     end
 
-    # Determine maximum line count from environment variable or default to 10
-    if set -q LUME_LINE_COUNT
-        set max_line_count $LUME_LINE_COUNT
-    else
-        set max_line_count 10
-    end
-    set line_count 0
-
-    # Process each incoming log line
     while read -l line
-        # Extract main fields from the log line
-        set log_level (echo $line | jq -r '.lvl // .level // "UNKNOWN"')
-        set message (echo $line | jq -r '.msg // .message // "No Message"')
-        set timestamp (echo $line | jq -r '.timestamp // .time // ""')
-        set human_timestamp (date -d $timestamp +"%A %d %B %Y %H:%M:%S" 2>/dev/null; or echo "Invalid Timestamp")
+        # Extracting primary fields (level, timestamp, and message)
+        set -l level (echo $line | jq -r '.lvl // .level // ""')
+        set -l message (echo $line | jq -r '.msg // .message // ""')
+        set -l timestamp (echo $line | jq -r '.timestamp // .time // ""')
 
-        set additional_fields ""
+        # Formatting the timestamp
+        set -l human_timestamp (date -d $timestamp +"%A %d %B %Y %T")
 
-        # Prepare the additional fields if they are not to be hidden
-        if test $_flag_hide_additional -eq 0
-            if test -n "$_flag_jq_filter"
-                set additional_fields (echo $line | jq -rc "$_flag_jq_filter")
-            else
-                set additional_fields (echo $line | jq -rc 'del(.lvl, .level, .msg, .message, .timestamp, .time)')
-            end
-
-            # Flatten the additional fields if the dot_notation flag is set
-            if test $_flag_dot_notation -eq 1
-                set additional_fields (echo $additional_fields | jq -r 'recurse | to_entries[] | "\(.key): \(.value)"')
-            end
-        end
-
-        # Begin printing the processed log line
-        echo -n "[ "
-
-        # Colorize log level based on its value
-        switch $log_level
+        # Handle log level coloring
+        switch $level
             case "INFO" "info"
                 set_color green
-                echo -n "INFO"
+                echo -n "[ INFO ]"
             case "ERROR" "error"
                 set_color red
-                echo -n "ERROR"
+                echo -n "[ ERROR ]"
             case "WARN" "warn"
                 set_color yellow
-                echo -n "WARN"
+                echo -n "[ WARN ]"
             case "TRACE" "trace"
                 set_color blue
-                echo -n "TRACE"
+                echo -n "[ TRACE ]"
             case '*'
                 set_color normal
-                echo -n "UNKNOWN"
+                echo -n "[ UNKNOWN ]"
         end
-
-        # Reset color and print the rest of the log line
         set_color normal
 
-        # Print the message, and if there are additional fields, append them separated by " - "
-        echo " ] - $human_timestamp - $message" (if test -n "$additional_fields"; echo -n " - $additional_fields"; end)
+        # Apply jq filter if provided
+        if test -n "$_flag_jq_filter"
+            set line (echo $line | jq $_flag_jq_filter)
+        end
 
-        # Count processed lines and give a warning if the threshold is reached
-        set line_count (math $line_count+1)
-        if test $line_count -ge $max_line_count
-            set_color yellow
-            echo "[ WARN from lume ] Exceeded $max_line_count lines of processed logs. Accumulation might affect performance."
-            set_color normal
-            set line_count 0
+        # Transform nested fields to dot notation if -D is set
+        if test $_flag_dot_notation -eq 1
+            set line (echo $line | jq -c 'recurse | objects | to_entries | .[] | "\(.key)=\(.value)"' | tr '\n' ',')
+        end
+
+        # Hide additional fields if -H is set
+        if test $_flag_hide_additional -eq 1
+            echo " - $human_timestamp - $message"
+        else
+            set -l additional_fields (echo $line | jq -c 'del(.lvl, .level, .msg, .message, .timestamp, .time)')
+            echo " - $human_timestamp - $message - $additional_fields"
         end
     end
-end
-
-function lume_help
-    echo "Usage: lume [OPTIONS]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help                Show this help message and exit."
-    echo "  -H, --hide-additional     Hide additional fields in the log."
-    echo "  -f, --jq-filter=FILTER    Provide a jq filter to extract specific fields. Example: -f '.details'."
-    echo "  -D, --dot-notation        Transform nested fields to dot notation."
 end
