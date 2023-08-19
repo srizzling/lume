@@ -3,7 +3,11 @@ function lume
     argparse "H/hide_additional_fields" "f/flat_fields" "d/filter_string=" -- $argv
 
     # Determine maximum line count from environment variable or default to 10
-    set max_line_count (or (env LUME_LINE_COUNT) 10)
+    if set -q LUME_LINE_COUNT
+        set max_line_count $LUME_LINE_COUNT
+    else
+        set max_line_count 10
+    end
     set line_count 0
 
     # Process each incoming log line
