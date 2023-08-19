@@ -19,7 +19,6 @@ function lume
     else
         set max_line_count 10
     end
-
     set line_count 0
 
     # Process each incoming log line
@@ -28,16 +27,16 @@ function lume
         set log_level (echo $line | jq -r '.lvl // .level // "UNKNOWN"')
         set message (echo $line | jq -r '.msg // .message // "No Message"')
         set timestamp (echo $line | jq -r '.timestamp // .time // ""')
-        set human_timestamp (date -d $timestamp +'%b %d %H:%M:%S' 2>/dev/null; or echo "Invalid Timestamp")
+        set human_timestamp (date -d $timestamp +"%A %d %B %Y %H:%M:%S" 2>/dev/null; or echo "Invalid Timestamp")
 
         set additional_fields ""
 
         # Prepare the additional fields if they are not to be hidden
         if test $_flag_hide_additional -eq 0
             if test -n "$_flag_jq_filter"
-                set additional_fields (echo $line | jq "$_flag_jq_filter")
+                set additional_fields (echo $line | jq -rc "$_flag_jq_filter")
             else
-                set additional_fields (echo $line | jq 'del(.lvl, .level, .msg, .message, .timestamp, .time)')
+                set additional_fields (echo $line | jq -rc 'del(.lvl, .level, .msg, .message, .timestamp, .time)')
             end
 
             # Flatten the additional fields if the dot_notation flag is set
@@ -70,7 +69,9 @@ function lume
 
         # Reset color and print the rest of the log line
         set_color normal
-        echo " ] - $human_timestamp - $message - $additional_fields"
+
+        # Print the message, and if there are additional fields, append them separated by " - "
+        echo " ] - $human_timestamp - $message" (if test -n "$additional_fields"; echo -n " - $additional_fields"; end)
 
         # Count processed lines and give a warning if the threshold is reached
         set line_count (math $line_count+1)
