@@ -70,7 +70,7 @@ function lume
             set additional_fields " - $json_fields"
         end
 
-        echo "$log_level_color[$log_level](set_color normal) - $human_timestamp - $message$additional_fields"
+        echo "$log_level_color\[ $log_level \](set_color normal) - $human_timestamp - $message - $additional_fields"
 
         if test $line_count -ge $max_line_count
             echo (set_color yellow)"[ WARN from lume ] Accumulated $line_count lines without a recognizable log level. Consider adjusting LUME_LINE_COUNT if seeing this frequently."(set_color normal)
