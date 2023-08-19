@@ -21,7 +21,7 @@ With `lume`, each log line gets transformed:
 With [fisher](https://github.com/jorgebucaran/fisher):
 
 ```fish
-fisher install https://github.com/srizzling/lume
+fisher install srizzling/lume
 ```
 
 ## Usage
