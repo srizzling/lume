@@ -1,4 +1,8 @@
 function lume
+    set _flag_hide_additional_fields 0
+    set _flag_flat_fields 0
+    set _flag_filter_string ""
+
     # Define flags and arguments with argparse
     argparse "H/hide_additional_fields" "f/flat_fields" "d/filter_string=" -- $argv
 
