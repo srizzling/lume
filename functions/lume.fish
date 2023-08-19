@@ -27,10 +27,12 @@ function lume
     if set -q _flag_dot_notation; set dot_notation true; end
 
     set -l line_count 0
-    set max_line_count $LUME_LINE_COUNT
-    if not set -q max_line_count
+    if set -q LUME_LINE_COUNT
+        set max_line_count $LUME_LINE_COUNT
+    else
         set max_line_count 10
     end
+
     while read -l line
         set line_count (math $line_count+1)
 
