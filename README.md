@@ -24,10 +24,51 @@ With [fisher](https://github.com/jorgebucaran/fisher):
 fisher install srizzling/lume
 ```
 
+Of course! Here's the updated usage section for lume with the new arguments:
+
+markdown
+
+# Lume
+
+**A human-friendly structured log viewer.**
+
+![Lume Example Image](YOUR_IMAGE_LINK_HERE)
+
+Structured logs are designed for machines, especially logging systems. `lume` is for humans, making these logs, especially in local development, more readable.
+
+## Installation
+
+```bash
+fisher install srizzling/lume
+```
+
 ## Usage
 
-```fish
+Pipe your structured logs into lume and watch it make the logs more readable:
+
+```bash
 echo '{"lvl": "INFO", "msg": "Hello World", "timestamp": "2023-08-19T12:00:00Z"}' | lume
+```
+
+### Options:
+
+    -h, --help: Show the help message and exit.
+    -H, --hide-additional: Hide additional fields in the log.
+    -f, --jq-filter=FILTER: Provide a jq filter to extract specific fields. Example: -f '.details'.
+    -D, --dot-notation: Transform nested fields to dot notation.
+
+### Examples:
+
+To hide additional fields:
+
+```bash
+echo '{"lvl": "INFO", "msg": "Hello World", "details": {"location": "earth"}}' | lume -H
+```
+
+To use a jq filter and dot notation:
+
+```bash
+echo '{"lvl": "INFO", "msg": "Hello World", "details": {"location": "earth"}}
 ```
 
 ## Configuration
