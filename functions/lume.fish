@@ -26,15 +26,20 @@ function lume
     if set -q _flag_jq_filter; set jq_filter $_flag_jq_filter; end
     if set -q _flag_dot_notation; set dot_notation true; end
 
-    set -l line_count 0
-    set max_line_count (or (env LUME_LINE_COUNT) 10)
-    while read -l line
-        math line_count++
+    # Remaining logic starts here
 
-        set log_level (echo $line | jq -r ".lvl? // .level? // empty")
-        set message (echo $line | jq -r ".msg? // .message? // empty")
-        set timestamp (echo $line | jq -r ".timestamp? // .time? // empty")
-        set human_timestamp (date --date=$timestamp +"%b %d %H:%M:%S")
+    set -l line_count 0
+    set max_line_count $LUME_LINE_COUNT
+    if not set -q max_line_count
+        set max_line_count 10
+    end
+    while read -l line
+        set line_count (math $line_count+1)
+
+        set -l log_level (echo $line | jq -r ".lvl? // .level? // empty")
+        set -l message (echo $line | jq -r ".msg? // .message? // empty")
+        set -l timestamp (echo $line | jq -r ".timestamp? // .time? // empty")
+        set -l human_timestamp (date --date=$timestamp +"%b %d %H:%M:%S")
 
         switch $log_level
             case "INFO" "info"
@@ -49,6 +54,7 @@ function lume
                 set log_level_color (set_color white)
         end
 
+        # Additional Fields Processing
         set additional_fields ""
         if not $hide_additional
             set json_fields (echo $line | jq -c "del(.lvl, .level, .msg, .message, .timestamp, .time)")
